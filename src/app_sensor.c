@@ -30,6 +30,15 @@
 
 #define POWERUP_DELAY_MS (10U)
 
+#define APP_SENSOR_AXES (3U) // X, Y, Z
+#define APP_SENSOR_BUFFER_DEPTH (1024U) // 2 bytes * 3 axes * 1024 samples -> 6 kB
+#define MAX_FIFO_DEPTH (32U) // Assuming LIS2DH12
+
+static int16_t fifo_rambuffer[APP_SENSOR_BUFFER_DEPTH][APP_SENSOR_AXES];
+static const rd_sensor_data_fields_t acc_x_field = { .datas.acceleration_x_g = 1 };
+static const rd_sensor_data_fields_t acc_y_field = { .datas.acceleration_y_g = 1 };
+static const rd_sensor_data_fields_t acc_z_field = { .datas.acceleration_z_g = 1 };
+
 static inline void LOG (const char * const msg)
 {
     ri_log (RI_LOG_LEVEL_INFO, msg);
@@ -197,6 +206,81 @@ on_accelerometer_isr (const ri_gpio_evt_t event)
     {
         LOG ("Movement \r\n");
         app_sensor_event_increment();
+    }
+}
+
+rd_status_t app_sensor_fifo_collection_start(void)
+{
+  TODO
+}
+
+#ifndef CEEDLING
+static
+#endif
+void process_fifo (void * p_event, uint16_t event_size)
+{
+    rd_status_t err_code = RD_SUCCESS;
+    static size_t sample_num = 0;
+    // Get accelerometer handle
+    const rd_sensor_data_fields_t acc_fields = 
+    {
+     .datas.acceleration_x_g = 1,
+     .datas.acceleration_y_g = 1,
+     .datas.acceleration_z_g = 1
+    };
+     
+    rd_sensor_t * accelerometer = app_sensor_find_provider (acc_fields);
+    // Prepare FIFO data structure
+    size_t fifo_samples_available = MAX_FIFO_DEPTH;
+    rd_sensor_data_t data[MAX_FIFO_DEPTH] = { 0 };
+    float values[MAX_FIFO_DEPTH][APP_SENSOR_AXES] = {0};
+    for (size_t ii = 0; ii < fifo_samples_available; ii++)
+    {
+        data[ii].data = values[ii];
+        data[ii].fields.bitfield =acc_fields.bitfield;
+    }
+    
+    // Read FIFO
+    err_code |= accelerometer->fifo_read(&fifo_samples_available, &fifo_data);
+    // Crash on error
+    RD_ERROR_CHECK(err_code, RD_SUCCESS);
+
+    // Process FIFO to rambuffer
+    for(size_t ii = 0; ii < fifo_samples_available; ii++)
+    {
+        fifo_rambuffer[sample_num][0] rd_sensor_data_parse(data[ii], acc_x_field);
+        fifo_rambuffer[sample_num][1] rd_sensor_data_parse(data[ii], acc_y_field);
+        fifo_rambuffer[sample_num][2] rd_sensor_data_parse(data[ii], acc_z_field);
+        sample_num++;
+        // if rambuffer is full, stop.
+        if(sample_num >= APP_SENSOR_BUFFER_DEPTH)
+        {
+          sample_num = APP_SENSOR_BUFFER_DEPTH;
+          break;
+        }
+    }
+
+    // Trigger data processing once FIFO is full.
+    if(APP_SENSOR_BUFFER_DEPTH == sample_num)
+    {
+        accelerometer->fifo_enable(false);
+        // Turn accelerometer in low-power mode
+        TODO
+    }
+
+}
+
+
+#ifndef CEEDLING
+static
+#endif
+void
+on_accelerometer_fifo (const ri_gpio_evt_t event)
+{
+    if (RI_GPIO_SLOPE_LOTOHI == event.slope)
+    {
+        LOG ("FIFO \r\n");
+         ri_scheduler_event_put (NULL, 0U, &process_fifo);
     }
 }
 

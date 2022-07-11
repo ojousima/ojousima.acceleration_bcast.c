@@ -82,58 +82,14 @@ static
 #endif
 void heartbeat (void * p_event, uint16_t event_size)
 {
-    ri_comm_message_t msg = {0};
     rd_status_t err_code = RD_SUCCESS;
     bool heartbeat_ok = false;
-    rd_sensor_data_t data = { 0 };
-    size_t buffer_len = RI_COMM_MESSAGE_MAX_LENGTH;
-    data.fields = app_sensor_available_data();
-    float data_values[rd_sensor_data_fieldcount (&data)];
-    data.data = data_values;
-    app_sensor_get (&data);
-    // Sensor read takes a long while, indicate activity once data is read.
-    app_led_activity_signal (true);
-    m_dataformat_state = app_dataformat_next (m_dataformats_enabled, m_dataformat_state);
-    app_dataformat_encode (msg.data, &buffer_len, &data, m_dataformat_state);
-    msg.data_length = (uint8_t) buffer_len;
-    err_code = send_adv (&msg);
-    // Advertising should always be successful
-    RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
 
-    if (RD_SUCCESS == err_code)
-    {
-        heartbeat_ok = true;
-    }
+    // Turn accelerometer high-performance mode on
+    err_code |= app_sensor_fifo_collection_start();
 
-    // Cut endpoint data to fit into GATT msg.
-    msg.data_length = 18;
-    // Gatt Link layer takes care of delivery.
-    msg.repeat_count = 1;
-    err_code = rt_gatt_send_asynchronous (&msg);
+    last_heartbeat_timestamp_ms = ri_rtc_millis();
 
-    if (RD_SUCCESS == err_code)
-    {
-        heartbeat_ok = true;
-    }
-
-    // Restore original message length for NFC
-    msg.data_length = (uint8_t) buffer_len;
-    err_code = rt_nfc_send (&msg);
-
-    if (RD_SUCCESS == err_code)
-    {
-        heartbeat_ok = true;
-    }
-
-    if (heartbeat_ok)
-    {
-        ri_watchdog_feed();
-        last_heartbeat_timestamp_ms = ri_rtc_millis();
-    }
-
-    // Turn LED off before starting lengthy flash operations
-    app_led_activity_signal (false);
-    err_code = app_log_process (&data);
     RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
 }
 

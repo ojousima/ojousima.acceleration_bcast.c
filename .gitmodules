@@ -13,3 +13,6 @@
 [submodule "src/semver.c"]
 	path = src/semver
 	url = https://github.com/h2non/semver.c.git
+[submodule "src/ojousima.ruuvi_endpoints.c"]
+	path = src/ojousima.ruuvi_endpoints.c
+	url = https://github.com/ojousima/ojousima.ruuvi_endpoints.c

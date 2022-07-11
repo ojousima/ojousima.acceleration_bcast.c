@@ -28,12 +28,12 @@
 
 /** @brief repeat same data N times in advertisement, reduce sensor reads. */
 #ifndef APP_NUM_REPEATS
-#   define APP_NUM_REPEATS 2
+#   define APP_NUM_REPEATS 5
 #endif
 
 /** @brief Refresh sensor data at this interval.*/
 #ifndef APP_HEARTBEAT_INTERVAL_MS
-#   define APP_HEARTBEAT_INTERVAL_MS (APP_BLE_INTERVAL_MS * APP_NUM_REPEATS)
+#   define APP_HEARTBEAT_INTERVAL_MS (60U * 1000U)
 #endif
 
 /** @brief Resample battery voltage at this interval */

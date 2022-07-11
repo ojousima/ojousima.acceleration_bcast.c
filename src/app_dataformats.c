@@ -10,6 +10,7 @@
 #include "ruuvi_interface_communication_radio.h"
 #include "ruuvi_interface_communication.h"
 #include "ruuvi_task_adc.h"
+#include "ojousima_endpoint_ac.h"
 
 #include <math.h>
 #include <string.h>
@@ -56,7 +57,7 @@ app_dataformat_t app_dataformat_next (const app_dataformats_t formats,
                                       const app_dataformat_t state)
 {
     // TODO: Return enabled value instead of hardcoded one
-    return DF_5;
+    return DF_AC;
 }
 
 #if RE_3_ENABLED
@@ -184,6 +185,41 @@ encode_to_8 (uint8_t * const output,
 }
 #endif
 
+#if RE_AC_ENABLED
+TESTABLE_STATIC rd_status_t
+encode_to_ac (uint8_t * const output,
+              size_t * const output_length,
+              const rd_sensor_data_t * const data)
+{
+    static uint8_t ep_fa_measurement_count = 0;
+    rd_status_t err_code = RD_SUCCESS;
+    re_status_t enc_code = RE_SUCCESS;
+    re_fa_data_t ep_data = {0};
+    ep_fa_measurement_count++;
+    ep_fa_measurement_count %= 0xFFU;
+    ep_data.accelerationx_g   = rd_sensor_data_parse (data, RD_SENSOR_ACC_X_FIELD);
+    ep_data.accelerationy_g   = rd_sensor_data_parse (data, RD_SENSOR_ACC_Y_FIELD);
+    ep_data.accelerationz_g   = rd_sensor_data_parse (data, RD_SENSOR_ACC_Z_FIELD);
+    ep_data.temperature_c     = rd_sensor_data_parse (data, RD_SENSOR_TEMP_FIELD);
+    ep_data.message_counter   = ep_fa_measurement_count;
+    err_code |= rt_adc_vdd_get (&ep_data.battery_v);
+    err_code |= ri_radio_address_get (&ep_data.address);
+    enc_code |= re_fa_encode (output,
+                              &ep_data,
+                              &app_data_encrypt,
+                              ep_fa_key,
+                              RE_FA_CIPHERTEXT_LENGTH); //!< Cipher length == key lenght
+
+    if (RE_SUCCESS != enc_code)
+    {
+        err_code |= RD_ERROR_INTERNAL;
+    }
+
+    *output_length = RE_FA_DATA_LENGTH;
+    return err_code;
+}
+#endif
+
 #if RE_FA_ENABLED
 #ifndef APP_FA_KEY
 #define APP_FA_KEY {00, 11, 22, 33, 44, 55, 66, 77, 88, 99, 11, 12, 13, 14, 15, 16}
@@ -251,6 +287,12 @@ rd_status_t app_dataformat_encode (uint8_t * const output,
 
         case DF_8:
             err_code |= encode_to_8 (output, output_length, p_data);
+            break;
+#       endif
+#       if RE_AC_ENABLED
+
+        case DF_AC:
+            err_code |= encode_to_ac (output, output_length, p_data);
             break;
 #       endif
 #       if RE_FA_ENABLED

@@ -449,6 +449,9 @@ void app_sensor_vdd_measure_isr (const ri_radio_activity_evt_t evt);
  */
 rd_status_t app_sensor_vdd_sample (void);
 
+/* Collect FIFO data for acceleration analysis */
+rd_status_t app_sensor_fifo_collection_start(void);
+
 #ifdef RUUVI_RUN_TESTS
 void app_sensor_ctx_get (rt_sensor_ctx_t *** m_sensors, size_t * num_sensors);
 #endif
