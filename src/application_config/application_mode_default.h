@@ -58,4 +58,29 @@
 #ifndef APP_LOCKED_AT_BOOT
 #   define APP_LOCKED_AT_BOOT (true)
 #endif
+
+/** @brief High-performance mode for accelerometer */
+#ifndef APP_ACC_HIPERF_DSP_FUNC
+#   define APP_ACC_HIPERF_DSP_FUNC RD_SENSOR_DSP_HIGH_PASS //HIGH_PASS, LOW_PASS, _LAST
+#endif
+ // 0, 1, 2, 3. 0 is lightest, 3 is strongest. Affects high and low pass, exact effect is not well defined
+#ifndef APP_SENSOR_LIS2DH12_DSP_PARAM
+#   define APP_ACC_HIPERF_DSP_PARAM (1U) 
+#endif
+#ifndef APP_ACC_HIPERF_MODE
+#   define APP_ACC_HIPERF_MODE RD_SENSOR_CFG_CONTINUOUS
+#endif
+#ifndef APP_ACC_HIPERF_RESOLUTION
+#   define APP_ACC_HIPERF_RESOLUTION (10U) //!< bits, 8, 10, 12 allowed
+#endif
+// Values: 1-200, Hz, rounded up to what sensor supports
+// RD_SENSOR_CFG_CUSTOM_1: 400 Hz on every resolution
+// RD_SENSOR_CFG_CUSTOM_2: Allowed only on 8 bit resolution, 1620 Hz
+// RD_SENSOR_CFG_CUSTOM_3: 12, 10 bits: 1344 Hz, 8 bit 5376 Hz
+#ifndef APP_ACC_HIPERF_SAMPLERATE
+#   define APP_ACC_HIPERF_SAMPLERATE (RD_SENSOR_CFG_CUSTOM_3) 
+#endif
+#ifndef APP_ACC_HIPERF_SCALE
+#   define APP_ACC_HIPERF_SCALE (2U) //!< G, 2, 4, 8, 16 allowed.
+#endif
 #endif

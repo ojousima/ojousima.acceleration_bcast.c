@@ -26,7 +26,8 @@ typedef enum
     DF_3       = (1U << 0U),
     DF_5       = (1U << 1U),
     DF_8       = (1U << 2U),
-    DF_FA      = (1U << 3U)
+    DF_FA      = (1U << 3U),
+    DF_AC      = (1U << 4U)
 } app_dataformat_t;
 
 typedef struct
@@ -35,6 +36,7 @@ typedef struct
     unsigned int DF_5  : 1; //!< Dataformat 5 enabled
     unsigned int DF_8  : 1; //!< Dataformat 8 enabled
     unsigned int DF_FA : 1; //!< Dataformat fa enabled
+    unsigned int DF_AC : 1; //!< Dataformat fa enabled
 } app_dataformats_t; //!< Container for enabled data formats
 
 

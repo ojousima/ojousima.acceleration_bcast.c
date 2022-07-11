@@ -153,7 +153,30 @@ void m_sensors_init (void); //!< Give Ceedling a handle to initialize structs.
     .fifo_pin = RB_INT_FIFO_PIN,                            \
     .level_pin = RB_INT_LEVEL_PIN                           \
   }
+
+#define APP_SENSOR_ACCLEROMETER_HIPERF \
+        {                                                   \
+            .dsp_function = APP_ACC_HIPERF_DSP_FUNC,   \
+            .dsp_parameter = APP_ACC_HIPERF_DSP_PARAM, \
+            .mode = APP_ACC_HIPERF_MODE,               \
+            .resolution = APP_ACC_HIPERF_RESOLUTION,   \
+            .samplerate = APP_ACC_HIPERF_SAMPLERATE,   \
+            .scale = APP_ACC_HIPERF_SCALE \
+            }
+
+#define APP_SENSOR_ACCLEROMETER_LOPWR \
+        {                                                   \
+            .dsp_function = APP_SENSOR_LIS2DH12_DSP_FUNC,   \
+            .dsp_parameter = APP_SENSOR_LIS2DH12_DSP_PARAM, \
+            .mode = APP_SENSOR_LIS2DH12_MODE,               \
+            .resolution = APP_SENSOR_LIS2DH12_RESOLUTION,   \
+            .samplerate = APP_SENSOR_LIS2DH12_SAMPLERATE,   \
+            .scale = APP_SENSOR_LIS2DH12_SCALE \
+            } 
 #endif
+
+
+
 
 #if APP_SENSOR_LIS2DW12_ENABLED
 #define APP_SENSOR_LIS2DW2_DEFAULT_CFG                      \
@@ -451,6 +474,7 @@ rd_status_t app_sensor_vdd_sample (void);
 
 /* Collect FIFO data for acceleration analysis */
 rd_status_t app_sensor_fifo_collection_start(void);
+rd_status_t app_sensor_fifo_collection_stop(void);
 
 #ifdef RUUVI_RUN_TESTS
 void app_sensor_ctx_get (rt_sensor_ctx_t *** m_sensors, size_t * num_sensors);

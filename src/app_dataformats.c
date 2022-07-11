@@ -204,11 +204,8 @@ encode_to_ac (uint8_t * const output,
     ep_data.message_counter   = ep_fa_measurement_count;
     err_code |= rt_adc_vdd_get (&ep_data.battery_v);
     err_code |= ri_radio_address_get (&ep_data.address);
-    enc_code |= re_fa_encode (output,
-                              &ep_data,
-                              &app_data_encrypt,
-                              ep_fa_key,
-                              RE_FA_CIPHERTEXT_LENGTH); //!< Cipher length == key lenght
+   // enc_code |= app_endpoint_ac_encode_v2 (output,
+   //                           &ep_data);
 
     if (RE_SUCCESS != enc_code)
     {

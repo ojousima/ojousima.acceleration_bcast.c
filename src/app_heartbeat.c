@@ -1,7 +1,7 @@
 /**
  * @file app_heartbeat.c
  * @author Otso Jousimaa <otso@ojousima.net>
- * @date 2020-06-17
+ * @date 2022-07-11
  * @copyright Ruuvi Innovations Ltd, License BSD-3-Clause.
  */
 
@@ -17,20 +17,30 @@
 #include "ruuvi_endpoint_5.h"
 #include "ruuvi_interface_communication.h"
 #include "ruuvi_interface_communication_radio.h"
+#include "ruuvi_interface_log.h"
 #include "ruuvi_interface_rtc.h"
 #include "ruuvi_interface_scheduler.h"
 #include "ruuvi_interface_timer.h"
 #include "ruuvi_interface_watchdog.h"
+#include "ruuvi_interface_yield.h"
 #include "ruuvi_task_adc.h"
 #include "ruuvi_task_advertisement.h"
 #include "ruuvi_task_gatt.h"
 #include "ruuvi_task_nfc.h"
 
+#include <stdio.h>
+
 #define U8_MASK (0xFFU)
-#define APP_DF_3_ENABLED 0
-#define APP_DF_5_ENABLED 1
-#define APP_DF_8_ENABLED 0
-#define APP_DF_FA_ENABLED 0
+#define APP_DF_3_ENABLED RE_3_ENABLED
+#define APP_DF_5_ENABLED RE_5_ENABLED
+#define APP_DF_8_ENABLED RE_8_ENABLED
+#define APP_DF_FA_ENABLED RE_FA_ENABLED
+#define APP_DF_AC_ENABLED RE_AC_ENABLED
+
+static inline void LOG (const char * const msg)
+{
+    ri_log (RI_LOG_LEVEL_INFO, msg);
+}
 
 static ri_timer_id_t heart_timer; //!< Timer for updating data.
 
@@ -43,7 +53,8 @@ static app_dataformats_t m_dataformats_enabled =
     .DF_3  = APP_DF_3_ENABLED,
     .DF_5  = APP_DF_5_ENABLED,
     .DF_8  = APP_DF_8_ENABLED,
-    .DF_FA = APP_DF_FA_ENABLED
+    .DF_FA = APP_DF_FA_ENABLED,
+    .DF_AC = APP_DF_AC_ENABLED
 }; //!< Flags of enabled formats
 
 static rd_status_t send_adv (ri_comm_message_t * const p_msg)
@@ -86,6 +97,7 @@ void heartbeat (void * p_event, uint16_t event_size)
     bool heartbeat_ok = false;
 
     // Turn accelerometer high-performance mode on
+    LOG("Acceleration collection start\r\n");
     err_code |= app_sensor_fifo_collection_start();
 
     last_heartbeat_timestamp_ms = ri_rtc_millis();
@@ -126,6 +138,18 @@ rd_status_t app_heartbeat_init (void)
     }
 
     return err_code;
+}
+
+rd_status_t app_heartbeat_acceleration_process(float data[][3])
+{
+   char msg[128] = {0};
+   for(size_t ii = 0; ii < 1024; ii++)
+   {
+     snprintf(msg, sizeof(msg), "X: %.3f Y: %.3f Z: %.3f \r\n", data[ii][0], data[ii][1], data[ii][2]);
+     LOG(msg);
+     ri_delay_ms(1U);
+   }
+    return RD_SUCCESS;
 }
 
 rd_status_t app_heartbeat_start (void)
