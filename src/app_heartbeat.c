@@ -12,6 +12,7 @@
 #include "app_led.h"
 #include "app_log.h"
 #include "app_sensor.h"
+#include "ojousima_endpoint_ac.h"
 #include "ruuvi_driver_error.h"
 #include "ruuvi_driver_sensor.h"
 #include "ruuvi_endpoint_5.h"
@@ -23,6 +24,8 @@
 #include "ruuvi_interface_timer.h"
 #include "ruuvi_interface_watchdog.h"
 #include "ruuvi_interface_yield.h"
+#include "ruuvi_library_rms.h"
+#include "ruuvi_library_peak2peak.h"
 #include "ruuvi_task_adc.h"
 #include "ruuvi_task_advertisement.h"
 #include "ruuvi_task_gatt.h"
@@ -93,8 +96,60 @@ static
 #endif
 void heartbeat (void * p_event, uint16_t event_size)
 {
+    ri_comm_message_t msg = {0};
     rd_status_t err_code = RD_SUCCESS;
     bool heartbeat_ok = false;
+    rd_sensor_data_t data = { 0 };
+    size_t buffer_len = RI_COMM_MESSAGE_MAX_LENGTH;
+    data.fields = app_sensor_available_data();
+    float data_values[rd_sensor_data_fieldcount (&data)];
+    data.data = data_values;
+    app_sensor_get (&data);
+    // Sensor read takes a long while, indicate activity once data is read.
+    app_led_activity_signal (true);
+    // Send always at DF 5 while collecting acceleration data.
+    m_dataformat_state = DF_5;
+    app_dataformat_encode (msg.data, &buffer_len, &data, m_dataformat_state);
+    msg.data_length = (uint8_t) buffer_len;
+    err_code = send_adv (&msg);
+    // Advertising should always be successful
+    RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
+
+    if (RD_SUCCESS == err_code)
+    {
+        heartbeat_ok = true;
+    }
+
+    // Cut endpoint data to fit into GATT msg.
+    msg.data_length = 18;
+    // Gatt Link layer takes care of delivery.
+    msg.repeat_count = 1;
+    err_code = rt_gatt_send_asynchronous (&msg);
+
+    if (RD_SUCCESS == err_code)
+    {
+        heartbeat_ok = true;
+    }
+
+    // Restore original message length for NFC
+    msg.data_length = (uint8_t) buffer_len;
+    err_code = rt_nfc_send (&msg);
+
+    if (RD_SUCCESS == err_code)
+    {
+        heartbeat_ok = true;
+    }
+
+    if (heartbeat_ok)
+    {
+        ri_watchdog_feed();
+        last_heartbeat_timestamp_ms = ri_rtc_millis();
+    }
+
+    // Turn LED off before starting lengthy flash operations
+    app_led_activity_signal (false);
+    err_code = app_log_process (&data);
+    RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
 
     // Turn accelerometer high-performance mode on
     LOG("Acceleration collection start\r\n");
@@ -140,16 +195,41 @@ rd_status_t app_heartbeat_init (void)
     return err_code;
 }
 
-rd_status_t app_heartbeat_acceleration_process(float data[][3])
+rd_status_t app_heartbeat_acceleration_process(float* const  data_x, float* const  data_y, float* const  data_z)
 {
-   char msg[128] = {0};
+   char log_msg[128] = {0};
+   size_t buffer_len = RI_COMM_MESSAGE_MAX_LENGTH;
+   ri_comm_message_t msg = {0};
+    rd_status_t err_code = RD_SUCCESS;
+    rd_sensor_data_t env_data = { 0 };
+
+    // Advertising should always be successful
+    RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
+    app_endpoint_ac_data_t acceleration_data = {0};
+   // Sensor is back in low-power mode, process the acceleration data.
    for(size_t ii = 0; ii < 1024; ii++)
    {
-     snprintf(msg, sizeof(msg), "X: %.3f Y: %.3f Z: %.3f \r\n", data[ii][0], data[ii][1], data[ii][2]);
-     LOG(msg);
-     ri_delay_ms(1U);
+     // Print samples
+     // snprintf(log_msg, sizeof(log_msg), "X: %.3f Y: %.3f Z: %.3f \r\n", data_x[ii], data_y[ii], data_z[ii]);
+     // LOG(log_msg);
+     // Delay to let logs process
+     // ri_delay_ms(1U);
    }
-    return RD_SUCCESS;
+  acceleration_data.rms[0] = rl_rms (data_x, APP_SENSOR_BUFFER_DEPTH);
+  acceleration_data.p2p[0] = rl_peak2peak (data_x, APP_SENSOR_BUFFER_DEPTH);
+  acceleration_data.rms[1] = rl_rms (data_y, APP_SENSOR_BUFFER_DEPTH);
+  acceleration_data.p2p[1] = rl_peak2peak (data_y, APP_SENSOR_BUFFER_DEPTH);
+  acceleration_data.rms[2] = rl_rms (data_z, APP_SENSOR_BUFFER_DEPTH);
+  acceleration_data.p2p[2] = rl_peak2peak (data_z, APP_SENSOR_BUFFER_DEPTH);
+    env_data.fields = app_sensor_available_data();
+    float data_values[rd_sensor_data_fieldcount (&env_data)];
+    env_data.data = data_values;
+    app_sensor_get (&env_data);
+    app_endpoint_ac_encode_v2(msg.data, &acceleration_data);;
+    msg.data_length = APP_ENDPOINT_AC_DATA_LENGTH;
+    err_code = send_adv (&msg);
+  
+    return err_code;
 }
 
 rd_status_t app_heartbeat_start (void)

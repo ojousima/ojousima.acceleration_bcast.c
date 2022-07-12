@@ -19,6 +19,10 @@
 #define APP_FW_VERSION "v0.0.1"
 #endif
 
+#ifndef APP_FW_NAME
+#define APP_FW_NAME "Acc BC "
+#endif
+
 /**
  * @addtogroup SDK15
  */
@@ -423,7 +427,7 @@
  * @brief Enable official raw dataformat
  */
 #ifndef RE_5_ENABLED
-#   define RE_5_ENABLED  (0U + ENABLE_ALL_DATAFORMATS)
+#   define RE_5_ENABLED  (1U + ENABLE_ALL_DATAFORMATS)
 #endif
 
 /**

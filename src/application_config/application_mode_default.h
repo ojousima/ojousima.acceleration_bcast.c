@@ -13,9 +13,6 @@
 /**
  * @brief name for Device Information Service.
  */
-#ifndef APP_FW_NAME
-#define APP_FW_NAME "Ruuvi FW "
-#endif
 
 #ifndef APP_FW_VARIANT
 #define APP_FW_VARIANT "+default"

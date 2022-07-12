@@ -56,8 +56,44 @@ uint32_t app_data_encrypt (const uint8_t * const cleartext,
 app_dataformat_t app_dataformat_next (const app_dataformats_t formats,
                                       const app_dataformat_t state)
 {
-    // TODO: Return enabled value instead of hardcoded one
-    return DF_AC;
+    app_dataformat_t next = state;
+    switch(state)
+    {
+      case DF_3:
+          if(formats.DF_5)
+          {
+            next = DF_5;
+            break;
+          }
+      case DF_5:
+          if(formats.DF_8)
+          {
+            next = DF_8;
+            break;
+          }
+      case DF_8:
+          if(formats.DF_AC)
+          {
+            next = DF_AC;
+            break;
+          }
+      case DF_AC:
+          if(formats.DF_FA)
+          {
+            next = DF_FA;
+            break;
+          }
+      case DF_FA:
+          if(formats.DF_3)
+          {
+            next = DF_3;
+            break;
+          }
+        default:
+          next = state;
+    }
+
+    return next;
 }
 
 #if RE_3_ENABLED

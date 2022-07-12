@@ -36,6 +36,7 @@
 
 #define APP_SENSOR_SELFTEST_RETRIES (5U) //!< Number of times to retry init on self-test fail.
 #define APP_SENSOR_HANDLE_UNUSED    RD_HANDLE_UNUSED
+#define APP_SENSOR_BUFFER_DEPTH (1024U) // 4 bytes * 3 axes * 1024 samples -> 12 kB
 
 enum
 {

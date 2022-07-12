@@ -12,8 +12,8 @@
 /** @brief repeat same data N times in advertisement, reduce sensor reads. */
 #define APP_NUM_REPEATS 4
 
-/** @brief Communicate sensor data at this interval. 221 matches Apple guideline. */
-#define APP_HEARTBEAT_INTERVAL_MS (APP_BLE_INTERVAL_MS * APP_NUM_REPEATS)
+/** @brief Communicate sensor data at this interval. . */
+#define APP_HEARTBEAT_INTERVAL_MS (10U * 1000U)
 
 #define APP_LOG_INTERVAL_S (1U) //!< Gets limited to heartbeat rate.
 
