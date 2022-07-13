@@ -68,7 +68,7 @@
 #   define APP_ACC_HIPERF_MODE RD_SENSOR_CFG_CONTINUOUS
 #endif
 #ifndef APP_ACC_HIPERF_RESOLUTION
-#   define APP_ACC_HIPERF_RESOLUTION (10U) //!< bits, 8, 10, 12 allowed
+#   define APP_ACC_HIPERF_RESOLUTION (12U) //!< bits, 8, 10, 12 allowed
 #endif
 // Values: 1-200, Hz, rounded up to what sensor supports
 // RD_SENSOR_CFG_CUSTOM_1: 400 Hz on every resolution

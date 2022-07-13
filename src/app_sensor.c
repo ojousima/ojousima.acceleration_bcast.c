@@ -33,6 +33,7 @@
 
 #define APP_SENSOR_AXES (3U) // X, Y, Z
 #define MAX_FIFO_DEPTH (32U) // Assuming LIS2DH12
+#define FIFO_DISCARD_DIRTY (5U) // Discard first FIFOs to let DSP settle
 
 static float fifo_rambuffer_x[APP_SENSOR_BUFFER_DEPTH];
 static float fifo_rambuffer_y[APP_SENSOR_BUFFER_DEPTH];
@@ -225,6 +226,9 @@ void process_fifo (void * p_event, uint16_t event_size)
 {
     rd_status_t err_code = RD_SUCCESS;
     static size_t sample_num = 0;
+    // Discard first 96 samples to let DSP settle. 
+    // This could be optimized by enabling FIFO after accelerometer is settled in new state.
+    static size_t fifo_discard = FIFO_DISCARD_DIRTY;
     // Get accelerometer handle
     rd_sensor_t * accelerometer = app_sensor_find_provider (acc_fields);
     // Prepare FIFO data structure
@@ -237,8 +241,13 @@ void process_fifo (void * p_event, uint16_t event_size)
         data[ii].fields.bitfield =acc_fields.bitfield;
     }
     
-    // Read FIFO
+    // Read FIFO - needed even when data is discarded
     err_code |= accelerometer->fifo_read(&fifo_samples_available, data);
+    if(fifo_discard)
+    {
+      fifo_discard--;
+      return;
+    }
     
     // Crash on error
     RD_ERROR_CHECK(err_code, RD_SUCCESS);
@@ -265,12 +274,14 @@ void process_fifo (void * p_event, uint16_t event_size)
         // Turn accelerometer in low-power mode, err_code is checked in function.
         (void)app_sensor_fifo_collection_stop();
         // Call heartbeat to boradcast data
+        // NOTE: FFT Processing alter source data, do not use data after this call
         app_heartbeat_acceleration_process(fifo_rambuffer_x, fifo_rambuffer_y, fifo_rambuffer_z);
         // Reset buffer and data collection state
         memset(fifo_rambuffer_x, 0, sizeof(fifo_rambuffer_x));
         memset(fifo_rambuffer_y, 0, sizeof(fifo_rambuffer_y));
         memset(fifo_rambuffer_z, 0, sizeof(fifo_rambuffer_z));
         sample_num = 0;
+        fifo_discard = FIFO_DISCARD_DIRTY;
     }
 }
 

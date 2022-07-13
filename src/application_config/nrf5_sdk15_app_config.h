@@ -24,5 +24,9 @@
 /** @brief Let drivers know they have non-default configuration available */
 #define NRF5_SDK15_CONFIGURED 1
 
+// Allow different advertisement formats
+#define RUUVI_NRF5_SDK15_ADV_QUEUE_LENGTH  5
+#define RUUVI_NRF5_SDK15_SCAN_QUEUE_LENGTH 5
+
 /*@}*/
 #endif
