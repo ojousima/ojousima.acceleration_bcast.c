@@ -22,7 +22,7 @@ COMMIT := $(shell git rev-parse --short HEAD)
 # VERSION will be the tag if one exists for current commit, otherwise the commit hash.
 VERSION := $(if $(TAG),\\\"$(TAG)\\\",\\\"$(COMMIT)\\\")
 
-BOARDS = ruuvitag_b kaarle kalervo keijo
+BOARDS = ruuvitag_b
 VARIANTS = default test
 
 .PHONY: all sync ${BOARDS} analysis publish clean
@@ -61,41 +61,6 @@ ruuvitag_b:
 											RUN_TESTS=-DRUUVI_RUN_TESTS OPT="-Og -g3" # gdb information included 
 	@echo + package next
 	targets/$@/armgcc/package.sh -n ruuvifw_test
-
-kaarle:
-	@echo build FW ${VERSION} for board $@
-	$(MAKE) -C targets/$@/armgcc clean
-	$(MAKE) -C targets/$@/armgcc 		FW_VERSION=-DAPP_FW_VERSION=${VERSION} DEBUG=-DNDEBUG  MODE=-DAPPLICATION_MODE_DEFAULT 
-	targets/$@/armgcc/package.sh -n ruuvifw_default
-
-	$(MAKE) -C targets/$@/armgcc clean
-	$(MAKE) -C targets/$@/armgcc 		FW_VERSION=-DAPP_FW_VERSION=${VERSION} DEBUG=-DNDEBUG MODE=-DAPPLICATION_MODE_LONGLIFE 
-	targets/$@/armgcc/package.sh -n ruuvifw_longlife
-
-	$(MAKE) -C targets/$@/armgcc clean
-	$(MAKE) -C targets/$@/armgcc 		FW_VERSION=-DAPP_FW_VERSION=${VERSION} DEBUG=-DDEBUG   MODE=-DAPPLICATION_MODE_DEBUG \
-											RUN_TESTS=-DRUUVI_RUN_TESTS OPT="-Og -g3"
-	targets/$@/armgcc/package.sh -n ruuvifw_test
-
-kalervo:
-	@echo build FW ${VERSION} for board $@
-	$(MAKE) -C targets/$@/armgcc clean
-	$(MAKE) -C targets/$@/armgcc 		FW_VERSION=-DAPP_FW_VERSION=${VERSION}  DEBUG=-DNDEBUG  MODE=-DAPPLICATION_MODE_DEFAULT 
-	targets/$@/armgcc/package.sh -n ruuvifw_default
-
-	$(MAKE) -C targets/$@/armgcc clean
-	$(MAKE) -C targets/$@/armgcc		FW_VERSION=-DAPP_FW_VERSION=${VERSION}  DEBUG=-DNDEBUG  MODE=-DAPPLICATION_MODE_LONGLIFE 
-	targets/$@/armgcc/package.sh -n ruuvifw_longlife
-
-keijo:
-	@echo build FW ${VERSION} for board $@
-	$(MAKE) -C targets/$@/armgcc clean
-	$(MAKE) -C targets/$@/armgcc			FW_VERSION=-DAPP_FW_VERSION=${VERSION}  DEBUG=-DNDEBUG  MODE=-DAPPLICATION_MODE_DEFAULT
-	targets/$@/armgcc/package.sh -n ruuvifw_default
-
-	$(MAKE) -C targets/$@/armgcc clean
-	$(MAKE) -C targets/$@/armgcc 		FW_VERSION=-DAPP_FW_VERSION=${VERSION}  DEBUG=-DNDEBUG  MODE=-DAPPLICATION_MODE_LONGLIFE 
-	targets/$@/armgcc/package.sh -n ruuvifw_longlife
 
 analysis:
 	@echo analysis FW ${VERSION}
