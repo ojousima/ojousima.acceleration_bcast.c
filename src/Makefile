@@ -75,6 +75,3 @@ publish:
 clean:
 	@echo Cleaning build files
 	$(MAKE) -C targets/ruuvitag_b/armgcc clean
-	$(MAKE) -C targets/kaarle/armgcc clean
-	$(MAKE) -C targets/kalervo/armgcc clean
-	$(MAKE) -C targets/keijo/armgcc clean
