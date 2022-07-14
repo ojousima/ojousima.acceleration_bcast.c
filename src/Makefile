@@ -44,23 +44,23 @@ ruuvitag_b:
 	$(MAKE) -C targets/ruuvitag_b/armgcc clean
 	$(MAKE) -C targets/ruuvitag_b/armgcc 	FW_VERSION=-DAPP_FW_VERSION=${VERSION} DEBUG=-DNDEBUG  MODE=-DAPPLICATION_MODE_DEFAULT   
 	@echo + package next
-	targets/$@/armgcc/package.sh -n ruuvifw_default
+	targets/$@/armgcc/package.sh -n accbc_default
 
 	$(MAKE) -C targets/$@/armgcc clean
 	$(MAKE) -C targets/$@/armgcc 	FW_VERSION=-DAPP_FW_VERSION=${VERSION} DEBUG=-DNDEBUG  MODE=-DAPPLICATION_MODE_LONGLIFE   
 	@echo + package next
-	targets/$@/armgcc/package.sh -n ruuvifw_longlife
+	targets/$@/armgcc/package.sh -n accbc_longlife
 
 	$(MAKE) -C targets/$@/armgcc clean
 	$(MAKE) -C targets/$@/armgcc 	FW_VERSION=-DAPP_FW_VERSION=${VERSION} DEBUG=-DNDEBUG  MODE=-DAPPLICATION_MODE_LONGMEM 
 	@echo + package next
-	targets/$@/armgcc/package.sh -n ruuvifw_longmem
+	targets/$@/armgcc/package.sh -n accbc_longmem
 
 	$(MAKE) -C targets/$@/armgcc clean
 	$(MAKE) -C targets/$@/armgcc 	FW_VERSION=-DAPP_FW_VERSION=${VERSION} DEBUG=-DDEBUG   MODE=-DAPPLICATION_MODE_DEBUG \
 											RUN_TESTS=-DRUUVI_RUN_TESTS OPT="-Og -g3" # gdb information included 
 	@echo + package next
-	targets/$@/armgcc/package.sh -n ruuvifw_test
+	targets/$@/armgcc/package.sh -n accbc_test
 
 analysis:
 	@echo analysis FW ${VERSION}

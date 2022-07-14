@@ -191,7 +191,7 @@ NFC_T4T_FPU_BIN= \
   $(PROJ_DIR)/ruuvi.drivers.c/src/nrf5_sdk15_platform/ruuvi.nrf_sdk15_3_overrides.c/t4t_lib/nfc_t4t_lib_gcc.a
 
 CMSIS_DSP_BIN= \
-  $(SDK_ROOT)/components/toolchain/cmsis/dsp/GCC/libarm_cortextM4lf_math.a
+  $(SDK_ROOT)/components/toolchain/cmsis/dsp/GCC/libarm_cortexM4lf_math.a
 
 RUUVI_LIB_SOURCES= \
   $(PROJ_DIR)/ojousima.ruuvi_endpoints.c/ojousima_endpoint_ac.c \

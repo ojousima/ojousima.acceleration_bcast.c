@@ -358,6 +358,7 @@ rd_status_t app_sensor_fifo_collection_stop (void)
     // Print configuration to logs
     ri_log_sensor_configuration (RI_LOG_LEVEL_INFO, &low_power, acceleration_unit);
     RD_ERROR_CHECK (err_code, RD_SUCCESS);
+    return err_code;
 }
 
 static ri_i2c_frequency_t rb_to_ri_i2c_freq (unsigned int rb_freq)
