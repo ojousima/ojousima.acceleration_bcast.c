@@ -41,13 +41,13 @@ static float fifo_rambuffer_z[APP_SENSOR_BUFFER_DEPTH];
 static const rd_sensor_data_fields_t acc_x_field = { .datas.acceleration_x_g = 1 };
 static const rd_sensor_data_fields_t acc_y_field = { .datas.acceleration_y_g = 1 };
 static const rd_sensor_data_fields_t acc_z_field = { .datas.acceleration_z_g = 1 };
-static const rd_sensor_data_fields_t acc_fields = 
- {
-     .datas.acceleration_x_g = 1,
-     .datas.acceleration_y_g = 1,
-     .datas.acceleration_z_g = 1
- };
- static const char acceleration_unit[] = "G";
+static const rd_sensor_data_fields_t acc_fields =
+{
+    .datas.acceleration_x_g = 1,
+    .datas.acceleration_y_g = 1,
+    .datas.acceleration_z_g = 1
+};
+static const char acceleration_unit[] = "G";
 
 static inline void LOG (const char * const msg)
 {
@@ -226,7 +226,7 @@ void process_fifo (void * p_event, uint16_t event_size)
 {
     rd_status_t err_code = RD_SUCCESS;
     static size_t sample_num = 0;
-    // Discard first 96 samples to let DSP settle. 
+    // Discard first 96 samples to let DSP settle.
     // This could be optimized by enabling FIFO after accelerometer is settled in new state.
     static size_t fifo_discard = FIFO_DISCARD_DIRTY;
     // Get accelerometer handle
@@ -235,57 +235,60 @@ void process_fifo (void * p_event, uint16_t event_size)
     size_t fifo_samples_available = MAX_FIFO_DEPTH;
     rd_sensor_data_t data[MAX_FIFO_DEPTH] = { 0 };
     float values[MAX_FIFO_DEPTH][APP_SENSOR_AXES] = {0};
+
     for (size_t ii = 0; ii < fifo_samples_available; ii++)
     {
         data[ii].data = values[ii];
-        data[ii].fields.bitfield =acc_fields.bitfield;
+        data[ii].fields.bitfield = acc_fields.bitfield;
     }
-    
+
     // Read FIFO - needed even when data is discarded
-    err_code |= accelerometer->fifo_read(&fifo_samples_available, data);
-    if(fifo_discard)
+    err_code |= accelerometer->fifo_read (&fifo_samples_available, data);
+
+    if (fifo_discard)
     {
-      fifo_discard--;
-      return;
+        fifo_discard--;
+        return;
     }
-    
+
     // Crash on error
-    RD_ERROR_CHECK(err_code, RD_SUCCESS);
+    RD_ERROR_CHECK (err_code, RD_SUCCESS);
 
     // Process FIFO to rambuffer
-    for(size_t ii = 0; ii < fifo_samples_available; ii++)
+    for (size_t ii = 0; ii < fifo_samples_available; ii++)
     {
-        fifo_rambuffer_x[sample_num] = rd_sensor_data_parse(&data[ii], acc_x_field);
-        fifo_rambuffer_y[sample_num] = rd_sensor_data_parse(&data[ii], acc_y_field);
-        fifo_rambuffer_z[sample_num] = rd_sensor_data_parse(&data[ii], acc_z_field);
+        fifo_rambuffer_x[sample_num] = rd_sensor_data_parse (&data[ii], acc_x_field);
+        fifo_rambuffer_y[sample_num] = rd_sensor_data_parse (&data[ii], acc_y_field);
+        fifo_rambuffer_z[sample_num] = rd_sensor_data_parse (&data[ii], acc_z_field);
         sample_num++;
+
         // if rambuffer is full, stop.
-        if(sample_num >= APP_SENSOR_BUFFER_DEPTH)
+        if (sample_num >= APP_SENSOR_BUFFER_DEPTH)
         {
-          sample_num = APP_SENSOR_BUFFER_DEPTH;
-          break;
+            sample_num = APP_SENSOR_BUFFER_DEPTH;
+            break;
         }
     }
 
     // Trigger data processing once FIFO is full.
-    if(APP_SENSOR_BUFFER_DEPTH == sample_num)
+    if (APP_SENSOR_BUFFER_DEPTH == sample_num)
     {
-        LOG("Acceleration collection ready\r\n");
+        LOG ("Acceleration collection ready\r\n");
         // Turn accelerometer in low-power mode, err_code is checked in function.
-        (void)app_sensor_fifo_collection_stop();
+        (void) app_sensor_fifo_collection_stop();
         // Call heartbeat to boradcast data
         // NOTE: FFT Processing alter source data, do not use data after this call
-        app_heartbeat_acceleration_process(fifo_rambuffer_x, fifo_rambuffer_y, fifo_rambuffer_z);
+        app_heartbeat_acceleration_process (fifo_rambuffer_x, fifo_rambuffer_y, fifo_rambuffer_z);
         // Reset buffer and data collection state
-        memset(fifo_rambuffer_x, 0, sizeof(fifo_rambuffer_x));
-        memset(fifo_rambuffer_y, 0, sizeof(fifo_rambuffer_y));
-        memset(fifo_rambuffer_z, 0, sizeof(fifo_rambuffer_z));
+        memset (fifo_rambuffer_x, 0, sizeof (fifo_rambuffer_x));
+        memset (fifo_rambuffer_y, 0, sizeof (fifo_rambuffer_y));
+        memset (fifo_rambuffer_z, 0, sizeof (fifo_rambuffer_z));
         sample_num = 0;
         fifo_discard = FIFO_DISCARD_DIRTY;
     }
 }
 
-/** 
+/**
  * @brief ACCELERATION BROADCASTER - Handle FIFO Full GPIO interrupt
  */
 #ifndef CEEDLING
@@ -299,62 +302,62 @@ on_accelerometer_fifo_isr (const ri_gpio_evt_t event)
     {
         // Print "FIFO Full event"
         // LOG ("FIFO \r\n");
-        // Schedule long processing, bus access etc to main context. 
+        // Schedule long processing, bus access etc to main context.
         ri_scheduler_event_put (NULL, 0U, &process_fifo);
     }
 }
 
-/** 
- * @brief ACCELERATION BROADCASTER - start data collection 
+/**
+ * @brief ACCELERATION BROADCASTER - start data collection
  *
  * Puts accelerometer in high-performance mode, enables FIFO, FIFO interrupts on accelerometer and GPIO interrupts on MCU.
  * @return error code from peripheral operations, RD_SUCCESS on success.
  * @note Any error is considered fatal and will reboot program.
  */
-rd_status_t app_sensor_fifo_collection_start(void)
+rd_status_t app_sensor_fifo_collection_start (void)
 {
-  rd_status_t err_code = RD_SUCCESS;
-  // Get accelerometer handle
-  rd_sensor_t * accelerometer = app_sensor_find_provider (acc_fields);
-  // Prepare configuration
-  rd_sensor_configuration_t high_perf = APP_SENSOR_ACCLEROMETER_HIPERF;
-  // Enable GPIO interrupt. Use NOPULL to avoid energy leaks, accelerometer uses push-pull output.
-   err_code |= ri_gpio_interrupt_enable (RB_INT_FIFO_PIN,
-                                              RI_GPIO_SLOPE_TOGGLE,
-                                              RI_GPIO_MODE_INPUT_NOPULL,
-                                              &on_accelerometer_fifo_isr);
-  // Note: Configuration is input/output variable. Input: desired settings. Output: configured settings.
-  err_code |= accelerometer->configuration_set(accelerometer, &high_perf);
-  err_code |= accelerometer->fifo_enable(true);
-  err_code |= accelerometer->fifo_interrupt_enable(true);
-  // Print configuration to logs
-  ri_log_sensor_configuration(RI_LOG_LEVEL_INFO, &high_perf, acceleration_unit);
-  RD_ERROR_CHECK(err_code, RD_SUCCESS);
-  return err_code;
+    rd_status_t err_code = RD_SUCCESS;
+    // Get accelerometer handle
+    rd_sensor_t * accelerometer = app_sensor_find_provider (acc_fields);
+    // Prepare configuration
+    rd_sensor_configuration_t high_perf = APP_SENSOR_ACCLEROMETER_HIPERF;
+    // Enable GPIO interrupt. Use NOPULL to avoid energy leaks, accelerometer uses push-pull output.
+    err_code |= ri_gpio_interrupt_enable (RB_INT_FIFO_PIN,
+                                          RI_GPIO_SLOPE_TOGGLE,
+                                          RI_GPIO_MODE_INPUT_NOPULL,
+                                          &on_accelerometer_fifo_isr);
+    // Note: Configuration is input/output variable. Input: desired settings. Output: configured settings.
+    err_code |= accelerometer->configuration_set (accelerometer, &high_perf);
+    err_code |= accelerometer->fifo_enable (true);
+    err_code |= accelerometer->fifo_interrupt_enable (true);
+    // Print configuration to logs
+    ri_log_sensor_configuration (RI_LOG_LEVEL_INFO, &high_perf, acceleration_unit);
+    RD_ERROR_CHECK (err_code, RD_SUCCESS);
+    return err_code;
 }
 
-/** 
- * @brief ACCELERATION BROADCASTER - Stop data collection 
+/**
+ * @brief ACCELERATION BROADCASTER - Stop data collection
  *
  * Puts accelerometer in low-power mode, disables FIFO, FIFO interrupts on accelerometer and GPIO interrupts on MCU.
  * @return error code from peripheral operations, RD_SUCCESS on success.
  * @note Any error is considered fatal and will reboot program.
  */
-rd_status_t app_sensor_fifo_collection_stop(void)
+rd_status_t app_sensor_fifo_collection_stop (void)
 {
-  rd_status_t err_code = RD_SUCCESS;
-  // Get accelerometer handle
-  rd_sensor_t * accelerometer = app_sensor_find_provider (acc_fields);
-  // Prepare configuration
-  rd_sensor_configuration_t low_power = APP_SENSOR_ACCLEROMETER_LOPWR;
-  // Enter low-power mode before disabling FIFO, interrupts. 
-  err_code |= accelerometer->configuration_set(accelerometer, &low_power);
-  err_code |= accelerometer->fifo_interrupt_enable(false);
-  err_code |= accelerometer->fifo_enable(false);
-  err_code |= ri_gpio_interrupt_disable (RB_INT_FIFO_PIN);
-  // Print configuration to logs
-  ri_log_sensor_configuration(RI_LOG_LEVEL_INFO, &low_power, acceleration_unit);
-  RD_ERROR_CHECK(err_code, RD_SUCCESS);
+    rd_status_t err_code = RD_SUCCESS;
+    // Get accelerometer handle
+    rd_sensor_t * accelerometer = app_sensor_find_provider (acc_fields);
+    // Prepare configuration
+    rd_sensor_configuration_t low_power = APP_SENSOR_ACCLEROMETER_LOPWR;
+    // Enter low-power mode before disabling FIFO, interrupts.
+    err_code |= accelerometer->configuration_set (accelerometer, &low_power);
+    err_code |= accelerometer->fifo_interrupt_enable (false);
+    err_code |= accelerometer->fifo_enable (false);
+    err_code |= ri_gpio_interrupt_disable (RB_INT_FIFO_PIN);
+    // Print configuration to logs
+    ri_log_sensor_configuration (RI_LOG_LEVEL_INFO, &low_power, acceleration_unit);
+    RD_ERROR_CHECK (err_code, RD_SUCCESS);
 }
 
 static ri_i2c_frequency_t rb_to_ri_i2c_freq (unsigned int rb_freq)

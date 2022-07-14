@@ -57,40 +57,46 @@ app_dataformat_t app_dataformat_next (const app_dataformats_t formats,
                                       const app_dataformat_t state)
 {
     app_dataformat_t next = state;
-    switch(state)
+
+    switch (state)
     {
-      case DF_3:
-          if(formats.DF_5)
-          {
-            next = DF_5;
-            break;
-          }
-      case DF_5:
-          if(formats.DF_8)
-          {
-            next = DF_8;
-            break;
-          }
-      case DF_8:
-          if(formats.DF_AC)
-          {
-            next = DF_AC;
-            break;
-          }
-      case DF_AC:
-          if(formats.DF_FA)
-          {
-            next = DF_FA;
-            break;
-          }
-      case DF_FA:
-          if(formats.DF_3)
-          {
-            next = DF_3;
-            break;
-          }
+        case DF_3:
+            if (formats.DF_5)
+            {
+                next = DF_5;
+                break;
+            }
+
+        case DF_5:
+            if (formats.DF_8)
+            {
+                next = DF_8;
+                break;
+            }
+
+        case DF_8:
+            if (formats.DF_AC)
+            {
+                next = DF_AC;
+                break;
+            }
+
+        case DF_AC:
+            if (formats.DF_FA)
+            {
+                next = DF_FA;
+                break;
+            }
+
+        case DF_FA:
+            if (formats.DF_3)
+            {
+                next = DF_3;
+                break;
+            }
+
         default:
-          next = state;
+            next = state;
     }
 
     return next;
@@ -240,8 +246,8 @@ encode_to_ac (uint8_t * const output,
     ep_data.message_counter   = ep_fa_measurement_count;
     err_code |= rt_adc_vdd_get (&ep_data.battery_v);
     err_code |= ri_radio_address_get (&ep_data.address);
-   // enc_code |= app_endpoint_ac_encode_v2 (output,
-   //                           &ep_data);
+    // enc_code |= app_endpoint_ac_encode_v2 (output,
+    //                           &ep_data);
 
     if (RE_SUCCESS != enc_code)
     {

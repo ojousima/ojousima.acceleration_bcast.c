@@ -173,7 +173,7 @@ void m_sensors_init (void); //!< Give Ceedling a handle to initialize structs.
             .resolution = APP_SENSOR_LIS2DH12_RESOLUTION,   \
             .samplerate = APP_SENSOR_LIS2DH12_SAMPLERATE,   \
             .scale = APP_SENSOR_LIS2DH12_SCALE \
-            } 
+            }
 #endif
 
 
@@ -474,8 +474,8 @@ void app_sensor_vdd_measure_isr (const ri_radio_activity_evt_t evt);
 rd_status_t app_sensor_vdd_sample (void);
 
 /* Collect FIFO data for acceleration analysis */
-rd_status_t app_sensor_fifo_collection_start(void);
-rd_status_t app_sensor_fifo_collection_stop(void);
+rd_status_t app_sensor_fifo_collection_start (void);
+rd_status_t app_sensor_fifo_collection_stop (void);
 
 #ifdef RUUVI_RUN_TESTS
 void app_sensor_ctx_get (rt_sensor_ctx_t *** m_sensors, size_t * num_sensors);

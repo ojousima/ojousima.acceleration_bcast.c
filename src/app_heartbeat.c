@@ -42,7 +42,7 @@
 #define APP_DF_8_ENABLED RE_8_ENABLED
 #define APP_DF_FA_ENABLED RE_FA_ENABLED
 #define APP_DF_AC_ENABLED RE_AC_ENABLED
-// FFT output is half of input in size 
+// FFT output is half of input in size
 #define FFT_SIZE ((APP_SENSOR_BUFFER_DEPTH) / 2U)
 
 static inline void LOG (const char * const msg)
@@ -58,15 +58,6 @@ static ri_timer_id_t heart_timer; //!< Timer for updating data.
 static uint64_t last_heartbeat_timestamp_ms; //!< Timestamp for heartbeat refresh.
 
 static app_dataformat_t m_dataformat_state; //!< State of heartbeat.
-
-static app_dataformats_t m_dataformats_enabled =
-{
-    .DF_3  = APP_DF_3_ENABLED,
-    .DF_5  = APP_DF_5_ENABLED,
-    .DF_8  = APP_DF_8_ENABLED,
-    .DF_FA = APP_DF_FA_ENABLED,
-    .DF_AC = APP_DF_AC_ENABLED
-}; //!< Flags of enabled formats
 
 static rd_status_t send_adv (ri_comm_message_t * const p_msg)
 {
@@ -158,13 +149,10 @@ void heartbeat (void * p_event, uint16_t event_size)
     app_led_activity_signal (false);
     err_code = app_log_process (&data);
     RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
-
     // Turn accelerometer high-performance mode on
-    LOG("Acceleration collection start\r\n");
+    LOG ("Acceleration collection start\r\n");
     err_code |= app_sensor_fifo_collection_start();
-
     last_heartbeat_timestamp_ms = ri_rtc_millis();
-
     RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
 }
 
@@ -204,130 +192,128 @@ rd_status_t app_heartbeat_init (void)
 }
 
 
-static rd_status_t  acceleration_fft_process(float* const  data, const uint8_t type)
+static rd_status_t  acceleration_fft_process (float * const  data, const uint8_t type)
 {
-// FFT example
-  char log_msg[128];
-     size_t buffer_len = RI_COMM_MESSAGE_MAX_LENGTH;
-   ri_comm_message_t msg = {0};
+    // FFT example
+    ri_comm_message_t msg = {0};
     rd_status_t err_code = RD_SUCCESS;
-  arm_rfft_fast_instance_f32 S = {0};
-  memset(fft_output, 0x55 ,sizeof(fft_output));
-  arm_rfft_fast_init_f32(&S, APP_SENSOR_BUFFER_DEPTH);
-  float td_energy = 0;
-  float fft_energy = 0;
-  app_endpoint_af_data_t fft_data;
-  // Calculate time-domain energy for sanity check.
-  for(size_t ii = 0; ii < APP_SENSOR_BUFFER_DEPTH; ii++)
-  {
-    td_energy += (data[ii] * data[ii]);
-  }
-  // NOTE: Changes input buffer. 
-  arm_rfft_fast_f32(&S, data, fft_output, 0);
+    arm_rfft_fast_instance_f32 S = {0};
+    memset (fft_output, 0x55, sizeof (fft_output));
+    arm_rfft_fast_init_f32 (&S, APP_SENSOR_BUFFER_DEPTH);
+    float td_energy = 0;
+    float fft_energy = 0;
+    app_endpoint_af_data_t fft_data;
 
-   // Print bins
-   // for(size_t ii = 0; ii < FFT_SIZE; ii++)
-   // {
-     // snprintf(log_msg, sizeof(log_msg), "Bin: %d Magnitude: %.3f \r\n", ii, fft_output[ii]);
-     // LOG(log_msg);
-     // Delay to let logs process
-     // ri_delay_ms(1U);
-   // }
-
-   // Normalize power and sum to 16 bins for broadcast
-   const size_t bin_accumulator_count = 16;
-   const size_t bin_accumulator_size = FFT_SIZE / bin_accumulator_count;
-   float accumulator_bins [16] = {0};
-   for(size_t ii = 0; ii < bin_accumulator_count; ii++)
-   {
-    for(size_t jj = 0; jj < bin_accumulator_size; jj++)
+    // Calculate time-domain energy for sanity check.
+    for (size_t ii = 0; ii < APP_SENSOR_BUFFER_DEPTH; ii++)
     {
-      float bin_power =  fft_output[(ii * bin_accumulator_size ) + jj] *  fft_output[(ii * bin_accumulator_size ) + jj];
-      accumulator_bins[ii] += bin_power;
-      // Calculate FFT energy for sanity check
-      fft_energy += bin_power;
+        td_energy += (data[ii] * data[ii]);
     }
-   }
 
-   // Find max for normalization
-   float max_power_value = 0;
-   for(size_t ii = 0; ii < 16; ii++)
-   {
-     max_power_value =   (accumulator_bins[ii] > max_power_value) ? accumulator_bins[ii] : max_power_value;
-     // Print accumulator bins
-     //snprintf(log_msg, sizeof(log_msg), "Bin: %d Magnitude: %.3f \r\n", ii, accumulator_bins[ii]);
-     //LOG(log_msg);
-     // Delay to let logs process
+    // NOTE: Changes input buffer.
+    arm_rfft_fast_f32 (&S, data, fft_output, 0);
+    // Print bins
+    // for(size_t ii = 0; ii < FFT_SIZE; ii++)
+    // {
+    // snprintf(log_msg, sizeof(log_msg), "Bin: %d Magnitude: %.3f \r\n", ii, fft_output[ii]);
+    // LOG(log_msg);
+    // Delay to let logs process
     // ri_delay_ms(1U);
-   }
+    // }
+    // Normalize power and sum to 16 bins for broadcast
+    const size_t bin_accumulator_count = 16;
+    const size_t bin_accumulator_size = FFT_SIZE / bin_accumulator_count;
+    float accumulator_bins [16] = {0};
 
-   // Normalize FFT
-   for(size_t ii = 0; ii < 16; ii++)
-   {
-     
-     accumulator_bins[ii] /= max_power_value;
-     fft_data.buckets[ii] = accumulator_bins[ii];
-   }
+    for (size_t ii = 0; ii < bin_accumulator_count; ii++)
+    {
+        for (size_t jj = 0; jj < bin_accumulator_size; jj++)
+        {
+            float bin_power =  fft_output[ (ii * bin_accumulator_size) + jj] *  fft_output[ (ii *
+                               bin_accumulator_size) + jj];
+            accumulator_bins[ii] += bin_power;
+            // Calculate FFT energy for sanity check
+            fft_energy += bin_power;
+        }
+    }
 
-     // Print time domain + frequency domain energy as a sanity check
-     // https://en.wikipedia.org/wiki/Parseval's_theorem, Discrete case. 
-     fft_energy /= FFT_SIZE; 
-     //snprintf(log_msg, sizeof(log_msg), "TD Energy: %.3f FD energy: %.3f \r\n", td_energy, fft_energy);
-     // LOG(log_msg);
-     // Delay to let logs process
+    // Find max for normalization
+    float max_power_value = 0;
+
+    for (size_t ii = 0; ii < 16; ii++)
+    {
+        max_power_value = (accumulator_bins[ii] > max_power_value) ? accumulator_bins[ii] :
+                          max_power_value;
+        // Print accumulator bins
+        //snprintf(log_msg, sizeof(log_msg), "Bin: %d Magnitude: %.3f \r\n", ii, accumulator_bins[ii]);
+        //LOG(log_msg);
+        // Delay to let logs process
+        // ri_delay_ms(1U);
+    }
+
+    // Normalize FFT
+    for (size_t ii = 0; ii < 16; ii++)
+    {
+        accumulator_bins[ii] /= max_power_value;
+        fft_data.buckets[ii] = accumulator_bins[ii];
+    }
+
+    // Print time domain + frequency domain energy as a sanity check
+    // https://en.wikipedia.org/wiki/Parseval's_theorem, Discrete case.
+    fft_energy /= FFT_SIZE;
+    //snprintf(log_msg, sizeof(log_msg), "TD Energy: %.3f FD energy: %.3f \r\n", td_energy, fft_energy);
+    // LOG(log_msg);
+    // Delay to let logs process
     // ri_delay_ms(1U);
     // Calculate scaling to 8-bit uints
-   fft_data.scale = 254.0f / max_power_value;
-   fft_data.type = type;
-   fft_data.frequency = (1344 / 2);
-    app_endpoint_af_encode_v0(msg.data, &fft_data);;
+    fft_data.scale = 254.0f / max_power_value;
+    fft_data.type = type;
+    fft_data.frequency = (1344 / 2);
+    app_endpoint_af_encode_v0 (msg.data, &fft_data);;
     msg.data_length = APP_ENDPOINT_AF_DATA_LENGTH;
     err_code = send_adv (&msg);
-    ri_log_hex(RI_LOG_LEVEL_INFO, msg.data, msg.data_length);
-    LOG("\r\n");
+    ri_log_hex (RI_LOG_LEVEL_INFO, msg.data, msg.data_length);
+    LOG ("\r\n");
     return err_code;
 }
 
-rd_status_t app_heartbeat_acceleration_process(float* const  data_x, float* const  data_y, float* const  data_z)
+rd_status_t app_heartbeat_acceleration_process (float * const  data_x,
+        float * const  data_y, float * const  data_z)
 {
-   char log_msg[128] = {0};
-   size_t buffer_len = RI_COMM_MESSAGE_MAX_LENGTH;
-   ri_comm_message_t msg = {0};
+    ri_comm_message_t msg = {0};
     rd_status_t err_code = RD_SUCCESS;
     rd_sensor_data_t env_data = { 0 };
-
     // Advertising should always be successful
     RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
     app_endpoint_ac_data_t acceleration_data = {0};
-   // Sensor is back in low-power mode, process the acceleration data.
-   for(size_t ii = 0; ii < 1024; ii++)
-   {
-     // Print samples
-     // snprintf(log_msg, sizeof(log_msg), "X: %.3f Y: %.3f Z: %.3f \r\n", data_x[ii], data_y[ii], data_z[ii]);
-     // LOG(log_msg);
-     // Delay to let logs process
-     // ri_delay_ms(1U);
-   }
-  acceleration_data.rms[0] = rl_rms (data_x, APP_SENSOR_BUFFER_DEPTH);
-  acceleration_data.p2p[0] = rl_peak2peak (data_x, APP_SENSOR_BUFFER_DEPTH);
-  acceleration_data.rms[1] = rl_rms (data_y, APP_SENSOR_BUFFER_DEPTH);
-  acceleration_data.p2p[1] = rl_peak2peak (data_y, APP_SENSOR_BUFFER_DEPTH);
-  acceleration_data.rms[2] = rl_rms (data_z, APP_SENSOR_BUFFER_DEPTH);
-  acceleration_data.p2p[2] = rl_peak2peak (data_z, APP_SENSOR_BUFFER_DEPTH);
 
+    // Sensor is back in low-power mode, process the acceleration data.
+    for (size_t ii = 0; ii < 1024; ii++)
+    {
+        // Print samples
+        // snprintf(log_msg, sizeof(log_msg), "X: %.3f Y: %.3f Z: %.3f \r\n", data_x[ii], data_y[ii], data_z[ii]);
+        // LOG(log_msg);
+        // Delay to let logs process
+        // ri_delay_ms(1U);
+    }
+
+    acceleration_data.rms[0] = rl_rms (data_x, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.p2p[0] = rl_peak2peak (data_x, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.rms[1] = rl_rms (data_y, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.p2p[1] = rl_peak2peak (data_y, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.rms[2] = rl_rms (data_z, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.p2p[2] = rl_peak2peak (data_z, APP_SENSOR_BUFFER_DEPTH);
     env_data.fields = app_sensor_available_data();
     float data_values[rd_sensor_data_fieldcount (&env_data)];
     env_data.data = data_values;
     app_sensor_get (&env_data);
-    app_endpoint_ac_encode_v2(msg.data, &acceleration_data);;
+    app_endpoint_ac_encode_v2 (msg.data, &acceleration_data);;
     msg.data_length = APP_ENDPOINT_AC_DATA_LENGTH;
     err_code = send_adv (&msg);
-
     // NOTE: FFT Processing alters source data.
-    err_code |= acceleration_fft_process(data_x, 0);
-    err_code |= acceleration_fft_process(data_y, 1);
-    err_code |= acceleration_fft_process(data_z, 2);
-  
+    err_code |= acceleration_fft_process (data_x, 0);
+    err_code |= acceleration_fft_process (data_y, 1);
+    err_code |= acceleration_fft_process (data_z, 2);
     return err_code;
 }
 

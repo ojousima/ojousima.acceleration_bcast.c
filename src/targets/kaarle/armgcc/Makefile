@@ -20,7 +20,8 @@ INC_FOLDERS += ${COMMON_INCLUDES}
 
 # Libraries common to all targets
 LIB_FILES += \
- $(SDK_ROOT)/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_2.0.7.a
+ $(SDK_ROOT)/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_2.0.7.a \
+ $(CMSIS_DSP_BIN)
 
 # Optimization flags
 OPT ?= -O3 -g3

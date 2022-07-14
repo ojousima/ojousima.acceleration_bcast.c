@@ -445,10 +445,21 @@
 #endif
 
 /**
+ * @brief Enable unofficial FFT dataformat
+ */
+#ifndef RE_AF_ENABLED
+#   define RE_AF_ENABLED  (3U + ENABLE_ALL_DATAFORMATS)
+#endif
+
+/**
  * @brief Enable legacy encrypted dataformat
  */
 #ifndef RE_FA_ENABLED
 #   define RE_FA_ENABLED (0U + ENABLE_ALL_DATAFORMATS)
+#endif
+
+#ifndef APP_ENABLED_FORMAT_COUNT
+#   define APP_ENABLED_FORMAT_COUNT (RE_3_ENABLED + RE_5_ENABLED + RE_8_ENABLED + RE_AC_ENABLED + RE_AF_ENABLED + RE_FA_ENABLED)
 #endif
 
 /**

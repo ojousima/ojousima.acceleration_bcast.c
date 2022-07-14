@@ -108,13 +108,13 @@ static uint8_t initial_adv_send_count (void)
 {
     uint32_t fast_advertising_interval = APP_FAST_ADV_TIME_MS / APP_ENABLED_FORMAT_COUNT;
     uint16_t num_sends = 1;
-    if((APP_HEARTBEAT_INTERVAL_MS / APP_ENABLED_FORMAT_COUNT)  < fast_advertising_interval)
+
+    if ( (APP_HEARTBEAT_INTERVAL_MS / APP_ENABLED_FORMAT_COUNT)  < fast_advertising_interval)
     {
-       fast_advertising_interval = (APP_HEARTBEAT_INTERVAL_MS / APP_ENABLED_FORMAT_COUNT);
+        fast_advertising_interval = (APP_HEARTBEAT_INTERVAL_MS / APP_ENABLED_FORMAT_COUNT);
     }
 
     num_sends = (fast_advertising_interval / 100U);
-    
 
     if (0 == num_sends) //-V547
     {

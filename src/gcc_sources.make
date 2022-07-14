@@ -190,7 +190,12 @@ NFC_SOURCES= \
 NFC_T4T_FPU_BIN= \
   $(PROJ_DIR)/ruuvi.drivers.c/src/nrf5_sdk15_platform/ruuvi.nrf_sdk15_3_overrides.c/t4t_lib/nfc_t4t_lib_gcc.a
 
+CMSIS_DSP_BIN= \
+  $(SDK_ROOT)/components/toolchain/cmsis/dsp/GCC/libarm_cortextM4lf_math.a
+
 RUUVI_LIB_SOURCES= \
+  $(PROJ_DIR)/ojousima.ruuvi_endpoints.c/ojousima_endpoint_ac.c \
+  $(PROJ_DIR)/ojousima.ruuvi_endpoints.c/ojousima_endpoint_af.c \
   $(PROJ_DIR)/ruuvi.drivers.c/BME280_driver/bme280.c \
   $(PROJ_DIR)/ruuvi.drivers.c/BME280_driver/selftest/bme280_selftest.c \
   $(PROJ_DIR)/ruuvi.drivers.c/embedded-sht/embedded-common/sensirion_common.c \
@@ -381,6 +386,7 @@ COMMON_INCLUDES= \
   $(SDK_ROOT)/modules/nrfx/mdk \
   $(SDK_ROOT)/integration/nrfx \
   $(PROJ_DIR)/application_config \
+  $(PROJ_DIR)/ojousima.ruuvi_endpoints.c \
   $(PROJ_DIR)/ruuvi.boards.c \
   $(PROJ_DIR)/ruuvi.drivers.c/BME280_driver \
   $(PROJ_DIR)/ruuvi.drivers.c/BME280_driver/selftest \
@@ -424,4 +430,5 @@ COMMON_INCLUDES= \
 COMMON_DEFINES= \
   -DAPPLICATION_DRIVER_CONFIGURED \
   -DAPPLICATION_ENDPOINTS_CONFIGURED \
-  -DMBEDTLS_CONFIG_FILE=\"nrf_crypto_mbedtls_config.h\" 
+  -DMBEDTLS_CONFIG_FILE=\"nrf_crypto_mbedtls_config.h\" \
+  -DARM_MATH_CM4
