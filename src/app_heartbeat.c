@@ -120,6 +120,7 @@ void heartbeat (void * p_event, uint16_t event_size)
     }
 
     // Cut endpoint data to fit into GATT msg.
+    // Actual maximum would be 20, but MAC address bytes aren't meaningful.
     msg.data_length = 18;
     // Gatt Link layer takes care of delivery.
     msg.repeat_count = 1;
@@ -198,6 +199,8 @@ static rd_status_t  acceleration_fft_process (float * const  data, const uint8_t
     ri_comm_message_t msg = {0};
     rd_status_t err_code = RD_SUCCESS;
     arm_rfft_fast_instance_f32 S = {0};
+    static uint8_t sequence = 0;
+    // 0x55 for a sequence that's easy to spot in memory readout
     memset (fft_output, 0x55, sizeof (fft_output));
     arm_rfft_fast_init_f32 (&S, APP_SENSOR_BUFFER_DEPTH);
     float td_energy = 0;
@@ -220,12 +223,11 @@ static rd_status_t  acceleration_fft_process (float * const  data, const uint8_t
     // Delay to let logs process
     // ri_delay_ms(1U);
     // }
-    // Normalize power and sum to 16 bins for broadcast
-    const size_t bin_accumulator_count = 16;
-    const size_t bin_accumulator_size = FFT_SIZE / bin_accumulator_count;
-    float accumulator_bins [16] = {0};
+    // Normalize power and sum to  bins for broadcast
+    const size_t bin_accumulator_size = FFT_SIZE / APP_ENDPOINT_AF_NUM_BUCKETS;
+    float accumulator_bins [APP_ENDPOINT_AF_NUM_BUCKETS] = {0};
 
-    for (size_t ii = 0; ii < bin_accumulator_count; ii++)
+    for (size_t ii = 0; ii < APP_ENDPOINT_AF_NUM_BUCKETS; ii++)
     {
         for (size_t jj = 0; jj < bin_accumulator_size; jj++)
         {
@@ -240,19 +242,19 @@ static rd_status_t  acceleration_fft_process (float * const  data, const uint8_t
     // Find max for normalization
     float max_power_value = 0;
 
-    for (size_t ii = 0; ii < 16; ii++)
+    for (size_t ii = 0; ii < APP_ENDPOINT_AF_NUM_BUCKETS; ii++)
     {
         max_power_value = (accumulator_bins[ii] > max_power_value) ? accumulator_bins[ii] :
                           max_power_value;
         // Print accumulator bins
-        //snprintf(log_msg, sizeof(log_msg), "Bin: %d Magnitude: %.3f \r\n", ii, accumulator_bins[ii]);
-        //LOG(log_msg);
+        // snprintf(log_msg, sizeof(log_msg), "Bin: %d Magnitude: %.3f \r\n", ii, accumulator_bins[ii]);
+        // LOG(log_msg);
         // Delay to let logs process
         // ri_delay_ms(1U);
     }
 
     // Normalize FFT
-    for (size_t ii = 0; ii < 16; ii++)
+    for (size_t ii = 0; ii < APP_ENDPOINT_AF_NUM_BUCKETS; ii++)
     {
         accumulator_bins[ii] /= max_power_value;
         fft_data.buckets[ii] = accumulator_bins[ii];
@@ -261,19 +263,24 @@ static rd_status_t  acceleration_fft_process (float * const  data, const uint8_t
     // Print time domain + frequency domain energy as a sanity check
     // https://en.wikipedia.org/wiki/Parseval's_theorem, Discrete case.
     fft_energy /= FFT_SIZE;
-    //snprintf(log_msg, sizeof(log_msg), "TD Energy: %.3f FD energy: %.3f \r\n", td_energy, fft_energy);
+    // snprintf(log_msg, sizeof(log_msg), "TD Energy: %.3f FD energy: %.3f \r\n", td_energy, fft_energy);
     // LOG(log_msg);
     // Delay to let logs process
     // ri_delay_ms(1U);
     // Calculate scaling to 8-bit uints
-    fft_data.scale = 254.0f / max_power_value;
+    fft_data.scale = APP_ENDPOINT_AF_RESOLUTION_LEVELS / max_power_value;
     fft_data.type = type;
-    fft_data.frequency = (1344 / 2);
+    // FFT buckets are up to sampling frequency / 2, Nyquist Theorem
+    fft_data.frequency = (APP_ACC_HIPERF_SAMPLERATE_HZ / 2);
+    fft_data.sequence = sequence;
+    sequence++;
     app_endpoint_af_encode_v0 (msg.data, &fft_data);;
     msg.data_length = APP_ENDPOINT_AF_DATA_LENGTH;
     err_code = send_adv (&msg);
-    ri_log_hex (RI_LOG_LEVEL_INFO, msg.data, msg.data_length);
-    LOG ("\r\n");
+    
+    // Print outgoing message
+    // ri_log_hex (RI_LOG_LEVEL_INFO, msg.data, msg.data_length);
+    // LOG ("\r\n");
     return err_code;
 }
 
@@ -283,12 +290,13 @@ rd_status_t app_heartbeat_acceleration_process (float * const  data_x,
     ri_comm_message_t msg = {0};
     rd_status_t err_code = RD_SUCCESS;
     rd_sensor_data_t env_data = { 0 };
+    static uint16_t sequence = 0;
     // Advertising should always be successful
     RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
     app_endpoint_ac_data_t acceleration_data = {0};
 
     // Sensor is back in low-power mode, process the acceleration data.
-    for (size_t ii = 0; ii < 1024; ii++)
+    for (size_t ii = 0; ii < APP_SENSOR_BUFFER_DEPTH; ii++)
     {
         // Print samples
         // snprintf(log_msg, sizeof(log_msg), "X: %.3f Y: %.3f Z: %.3f \r\n", data_x[ii], data_y[ii], data_z[ii]);
@@ -297,23 +305,27 @@ rd_status_t app_heartbeat_acceleration_process (float * const  data_x,
         // ri_delay_ms(1U);
     }
 
-    acceleration_data.rms[0] = rl_rms (data_x, APP_SENSOR_BUFFER_DEPTH);
-    acceleration_data.p2p[0] = rl_peak2peak (data_x, APP_SENSOR_BUFFER_DEPTH);
-    acceleration_data.rms[1] = rl_rms (data_y, APP_SENSOR_BUFFER_DEPTH);
-    acceleration_data.p2p[1] = rl_peak2peak (data_y, APP_SENSOR_BUFFER_DEPTH);
-    acceleration_data.rms[2] = rl_rms (data_z, APP_SENSOR_BUFFER_DEPTH);
-    acceleration_data.p2p[2] = rl_peak2peak (data_z, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.rms[APP_ENDPOINT_AC_X_INDEX] = rl_rms (data_x, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.p2p[APP_ENDPOINT_AC_X_INDEX] = rl_peak2peak (data_x, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.rms[APP_ENDPOINT_AC_Y_INDEX] = rl_rms (data_y, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.p2p[APP_ENDPOINT_AC_Y_INDEX] = rl_peak2peak (data_y, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.rms[APP_ENDPOINT_AC_Z_INDEX] = rl_rms (data_z, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.p2p[APP_ENDPOINT_AC_Z_INDEX] = rl_peak2peak (data_z, APP_SENSOR_BUFFER_DEPTH);
     env_data.fields = app_sensor_available_data();
     float data_values[rd_sensor_data_fieldcount (&env_data)];
     env_data.data = data_values;
     app_sensor_get (&env_data);
+    acceleration_data.temperature = rd_sensor_data_parse (&env_data, RD_SENSOR_TEMP_FIELD);
+    err_code |= rt_adc_vdd_get (&acceleration_data.voltage);
+    acceleration_data.sequence = sequence;
+    sequence++;
     app_endpoint_ac_encode_v2 (msg.data, &acceleration_data);;
     msg.data_length = APP_ENDPOINT_AC_DATA_LENGTH;
     err_code = send_adv (&msg);
     // NOTE: FFT Processing alters source data.
-    err_code |= acceleration_fft_process (data_x, 0);
-    err_code |= acceleration_fft_process (data_y, 1);
-    err_code |= acceleration_fft_process (data_z, 2);
+    err_code |= acceleration_fft_process (data_x, APP_ENDPOINT_AF_X_TYPE);
+    err_code |= acceleration_fft_process (data_y, APP_ENDPOINT_AF_Y_TYPE);
+    err_code |= acceleration_fft_process (data_z, APP_ENDPOINT_AF_Z_TYPE);
     return err_code;
 }
 
