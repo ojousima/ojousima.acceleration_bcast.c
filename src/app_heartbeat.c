@@ -327,6 +327,10 @@ rd_status_t app_heartbeat_acceleration_process (float * const  data_x,
     err_code = send_adv (&msg);
     // Turn LED off before starting lengthy flash operations
     app_led_activity_signal (false);
+    if(RD_SUCCESS == err_code)
+    {
+      ri_watchdog_feed();
+    }
 #if RE_AF_ENABLED
     // NOTE: FFT Processing alters source data.
     err_code |= acceleration_fft_process (data_x, APP_ENDPOINT_AF_X_TYPE);
