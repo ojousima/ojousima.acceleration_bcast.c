@@ -85,6 +85,45 @@ static rd_status_t send_adv (ri_comm_message_t * const p_msg)
     return err_code;
 }
 
+static rd_status_t df_5_process()
+{
+    rd_status_t err_code = RD_SUCCESS;
+#if RE_5_ENABLED
+    rd_status_t op_status = RD_SUCCESS;
+    ri_comm_message_t msg = {0};
+    rd_sensor_data_t data = { 0 };
+    size_t buffer_len = RI_COMM_MESSAGE_MAX_LENGTH;
+    data.fields = app_sensor_available_data();
+    float data_values[rd_sensor_data_fieldcount (&data)];
+    data.data = data_values;
+    app_sensor_get (&data);
+    // Sensor read takes a long while, indicate activity once data is read.
+    app_led_activity_signal (true);
+    m_dataformat_state = DF_5;
+    app_dataformat_encode (msg.data, &buffer_len, &data, m_dataformat_state);
+    msg.data_length = (uint8_t) buffer_len;
+    op_status = send_adv (&msg);
+    err_code |= op_status;
+    // Advertising should always be successful
+    RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
+    // Cut endpoint data to fit into GATT msg.
+    // Actual maximum would be 20, but MAC address bytes aren't meaningful.
+    msg.data_length = 18;
+    // Gatt Link layer takes care of delivery.
+    msg.repeat_count = 1;
+    op_status = rt_gatt_send_asynchronous (&msg);
+    err_code |= op_status;
+    // Restore original message length for NFC
+    msg.data_length = (uint8_t) buffer_len;
+    op_status = rt_nfc_send (&msg);
+    err_code |= op_status;
+    // Turn LED off before starting lengthy flash operations
+    app_led_activity_signal (false);
+    err_code = app_log_process (&data);
+#endif
+    return err_code;
+}
+
 /**
  * @brief When timer triggers, schedule reading sensors and sending data.
  *
@@ -95,65 +134,21 @@ static
 #endif
 void heartbeat (void * p_event, uint16_t event_size)
 {
-    ri_comm_message_t msg = {0};
     rd_status_t err_code = RD_SUCCESS;
-    bool heartbeat_ok = false;
-    rd_sensor_data_t data = { 0 };
-    size_t buffer_len = RI_COMM_MESSAGE_MAX_LENGTH;
-    data.fields = app_sensor_available_data();
-    float data_values[rd_sensor_data_fieldcount (&data)];
-    data.data = data_values;
-    app_sensor_get (&data);
-    // Sensor read takes a long while, indicate activity once data is read.
-    app_led_activity_signal (true);
-    // Send always at DF 5 while collecting acceleration data.
-    m_dataformat_state = DF_5;
-    app_dataformat_encode (msg.data, &buffer_len, &data, m_dataformat_state);
-    msg.data_length = (uint8_t) buffer_len;
-    err_code = send_adv (&msg);
-    // Advertising should always be successful
-    RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
+#if RE_5_ENABLED
+    err_code = df_5_process();
 
     if (RD_SUCCESS == err_code)
-    {
-        heartbeat_ok = true;
-    }
-
-    // Cut endpoint data to fit into GATT msg.
-    // Actual maximum would be 20, but MAC address bytes aren't meaningful.
-    msg.data_length = 18;
-    // Gatt Link layer takes care of delivery.
-    msg.repeat_count = 1;
-    err_code = rt_gatt_send_asynchronous (&msg);
-
-    if (RD_SUCCESS == err_code)
-    {
-        heartbeat_ok = true;
-    }
-
-    // Restore original message length for NFC
-    msg.data_length = (uint8_t) buffer_len;
-    err_code = rt_nfc_send (&msg);
-
-    if (RD_SUCCESS == err_code)
-    {
-        heartbeat_ok = true;
-    }
-
-    if (heartbeat_ok)
     {
         ri_watchdog_feed();
         last_heartbeat_timestamp_ms = ri_rtc_millis();
     }
 
-    // Turn LED off before starting lengthy flash operations
-    app_led_activity_signal (false);
-    err_code = app_log_process (&data);
     RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
+#endif
     // Turn accelerometer high-performance mode on
     LOG ("Acceleration collection start\r\n");
     err_code |= app_sensor_fifo_collection_start();
-    last_heartbeat_timestamp_ms = ri_rtc_millis();
     RD_ERROR_CHECK (err_code, ~RD_ERROR_FATAL);
 }
 
@@ -277,7 +272,6 @@ static rd_status_t  acceleration_fft_process (float * const  data, const uint8_t
     app_endpoint_af_encode_v0 (msg.data, &fft_data);;
     msg.data_length = APP_ENDPOINT_AF_DATA_LENGTH;
     err_code = send_adv (&msg);
-    
     // Print outgoing message
     // ri_log_hex (RI_LOG_LEVEL_INFO, msg.data, msg.data_length);
     // LOG ("\r\n");
@@ -287,6 +281,8 @@ static rd_status_t  acceleration_fft_process (float * const  data, const uint8_t
 rd_status_t app_heartbeat_acceleration_process (float * const  data_x,
         float * const  data_y, float * const  data_z)
 {
+    // Sensor read takes a long while, indicate activity once data is read.
+    app_led_activity_signal (true);
     ri_comm_message_t msg = {0};
     rd_status_t err_code = RD_SUCCESS;
     rd_sensor_data_t env_data = { 0 };
@@ -306,11 +302,14 @@ rd_status_t app_heartbeat_acceleration_process (float * const  data_x,
     }
 
     acceleration_data.rms[APP_ENDPOINT_AC_X_INDEX] = rl_rms (data_x, APP_SENSOR_BUFFER_DEPTH);
-    acceleration_data.p2p[APP_ENDPOINT_AC_X_INDEX] = rl_peak2peak (data_x, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.p2p[APP_ENDPOINT_AC_X_INDEX] = rl_peak2peak (data_x,
+            APP_SENSOR_BUFFER_DEPTH);
     acceleration_data.rms[APP_ENDPOINT_AC_Y_INDEX] = rl_rms (data_y, APP_SENSOR_BUFFER_DEPTH);
-    acceleration_data.p2p[APP_ENDPOINT_AC_Y_INDEX] = rl_peak2peak (data_y, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.p2p[APP_ENDPOINT_AC_Y_INDEX] = rl_peak2peak (data_y,
+            APP_SENSOR_BUFFER_DEPTH);
     acceleration_data.rms[APP_ENDPOINT_AC_Z_INDEX] = rl_rms (data_z, APP_SENSOR_BUFFER_DEPTH);
-    acceleration_data.p2p[APP_ENDPOINT_AC_Z_INDEX] = rl_peak2peak (data_z, APP_SENSOR_BUFFER_DEPTH);
+    acceleration_data.p2p[APP_ENDPOINT_AC_Z_INDEX] = rl_peak2peak (data_z,
+            APP_SENSOR_BUFFER_DEPTH);
     env_data.fields = app_sensor_available_data();
     float data_values[rd_sensor_data_fieldcount (&env_data)];
     env_data.data = data_values;
@@ -322,10 +321,14 @@ rd_status_t app_heartbeat_acceleration_process (float * const  data_x,
     app_endpoint_ac_encode_v2 (msg.data, &acceleration_data);;
     msg.data_length = APP_ENDPOINT_AC_DATA_LENGTH;
     err_code = send_adv (&msg);
+    // Turn LED off before starting lengthy flash operations
+    app_led_activity_signal (false);
+#if APP_FFT_ENABLED
     // NOTE: FFT Processing alters source data.
     err_code |= acceleration_fft_process (data_x, APP_ENDPOINT_AF_X_TYPE);
     err_code |= acceleration_fft_process (data_y, APP_ENDPOINT_AF_Y_TYPE);
     err_code |= acceleration_fft_process (data_z, APP_ENDPOINT_AF_Z_TYPE);
+#endif
     return err_code;
 }
 

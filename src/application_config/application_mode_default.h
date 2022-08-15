@@ -76,7 +76,7 @@
 // RD_SENSOR_CFG_CUSTOM_3: 12, 10 bits: 1344 Hz, 8 bit 5376 Hz
 #ifndef APP_ACC_HIPERF_SAMPLERATE
 #   define APP_ACC_HIPERF_SAMPLERATE (RD_SENSOR_CFG_CUSTOM_3)
-// Ruuvi sensor API can return only 1 ... 200 Hz, this has to be hardcoded. 
+// Ruuvi sensor API can return only 1 ... 200 Hz, this has to be hardcoded.
 #   define APP_ACC_HIPERF_SAMPLERATE_HZ (1344U)
 #endif
 #ifndef APP_ACC_HIPERF_SCALE

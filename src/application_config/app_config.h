@@ -427,7 +427,7 @@
  * @brief Enable official raw dataformat
  */
 #ifndef RE_5_ENABLED
-#   define RE_5_ENABLED  (1U + ENABLE_ALL_DATAFORMATS)
+#   define RE_5_ENABLED  (0U + ENABLE_ALL_DATAFORMATS)
 #endif
 
 /**
@@ -448,7 +448,7 @@
  * @brief Enable unofficial FFT dataformat
  */
 #ifndef RE_AF_ENABLED
-#   define RE_AF_ENABLED  (3U + ENABLE_ALL_DATAFORMATS)
+#   define RE_AF_ENABLED  (0U + ENABLE_ALL_DATAFORMATS)
 #endif
 
 /**
