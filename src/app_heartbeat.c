@@ -50,14 +50,17 @@ static inline void LOG (const char * const msg)
     ri_log (RI_LOG_LEVEL_INFO, msg);
 }
 
-
+#if RE_AF_ENABLED
 static float fft_output[APP_SENSOR_BUFFER_DEPTH];
+#endif
 
 static ri_timer_id_t heart_timer; //!< Timer for updating data.
 
 static uint64_t last_heartbeat_timestamp_ms; //!< Timestamp for heartbeat refresh.
 
+#if RE_5_ENABLED
 static app_dataformat_t m_dataformat_state; //!< State of heartbeat.
+#endif
 
 static rd_status_t send_adv (ri_comm_message_t * const p_msg)
 {
@@ -85,10 +88,10 @@ static rd_status_t send_adv (ri_comm_message_t * const p_msg)
     return err_code;
 }
 
+#if RE_5_ENABLED
 static rd_status_t df_5_process()
 {
     rd_status_t err_code = RD_SUCCESS;
-#if RE_5_ENABLED
     rd_status_t op_status = RD_SUCCESS;
     ri_comm_message_t msg = {0};
     rd_sensor_data_t data = { 0 };
@@ -120,9 +123,9 @@ static rd_status_t df_5_process()
     // Turn LED off before starting lengthy flash operations
     app_led_activity_signal (false);
     err_code = app_log_process (&data);
-#endif
     return err_code;
 }
+#endif
 
 /**
  * @brief When timer triggers, schedule reading sensors and sending data.
@@ -187,7 +190,7 @@ rd_status_t app_heartbeat_init (void)
     return err_code;
 }
 
-
+#if RE_AF_ENABLED
 static rd_status_t  acceleration_fft_process (float * const  data, const uint8_t type)
 {
     // FFT example
@@ -277,6 +280,7 @@ static rd_status_t  acceleration_fft_process (float * const  data, const uint8_t
     // LOG ("\r\n");
     return err_code;
 }
+#endif
 
 rd_status_t app_heartbeat_acceleration_process (float * const  data_x,
         float * const  data_y, float * const  data_z)
@@ -323,7 +327,7 @@ rd_status_t app_heartbeat_acceleration_process (float * const  data_x,
     err_code = send_adv (&msg);
     // Turn LED off before starting lengthy flash operations
     app_led_activity_signal (false);
-#if APP_FFT_ENABLED
+#if RE_AF_ENABLED
     // NOTE: FFT Processing alters source data.
     err_code |= acceleration_fft_process (data_x, APP_ENDPOINT_AF_X_TYPE);
     err_code |= acceleration_fft_process (data_y, APP_ENDPOINT_AF_Y_TYPE);
