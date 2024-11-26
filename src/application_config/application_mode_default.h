@@ -30,12 +30,12 @@
 
 /** @brief Refresh sensor data at this interval.*/
 #ifndef APP_HEARTBEAT_INTERVAL_MS
-#   define APP_HEARTBEAT_INTERVAL_MS (60U * 1000U)
+#   define APP_HEARTBEAT_INTERVAL_MS (180U * 1000U)
 #endif
 
 /** @brief Resample battery voltage at this interval */
 #ifndef APP_BATTERY_SAMPLE_MS
-#   define APP_BATTERY_SAMPLE_MS (60ULL*1000ULL)
+#   define APP_BATTERY_SAMPLE_MS (180ULL*1000ULL)
 #endif
 
 /** @brief Time to long press of a button. */
