@@ -234,7 +234,7 @@
 #   define APP_SENSOR_DPS310_DSP_PARAM 1 //!< Only 1 is valid with LAST
 #endif
 #ifndef APP_SENSOR_DPS310_MODE
-#   define APP_SENSOR_DPS310_MODE RD_SENSOR_CFG_CONTINUOUS //!< Run in background
+#   define APP_SENSOR_DPS310_MODE RD_SENSOR_CFG_SLEEP //!< Shut down
 #endif
 #ifndef APP_SENSOR_DPS310_RESOLUTION
 #   define APP_SENSOR_DPS310_RESOLUTION RD_SENSOR_CFG_DEFAULT //!< Only default resolution supported.
@@ -259,12 +259,12 @@
 
 /** @brief Enable Ruuvi NFC in application. */
 #ifndef APP_NFC_ENABLED
-#   define APP_NFC_ENABLED RB_NFC_INTERNAL_INSTALLED
+#   define APP_NFC_ENABLED (0U)
 #endif
 
 /** @brief Enable Ruuvi NFC tasks. */
 #ifndef RT_NFC_ENABLED
-#   define RT_NFC_ENABLED APP_NFC_ENABLED
+#   define RT_NFC_ENABLED (0U)
 #endif
 
 /** @brief Enable BLE advertising in application. */
@@ -295,7 +295,7 @@
 
 #ifndef APP_GATT_ENABLED
 //!< If Flash is at premium, cut GATT off by default.
-#   define APP_GATT_ENABLED (RB_FLASH_SPACE_AVAILABLE > RB_FLASH_SPACE_SMALL)
+#   define APP_GATT_ENABLED (0U)
 #endif
 
 /** @brief Enable GATT tasks */
@@ -320,7 +320,7 @@
 
 /** @brief Enable Flash tasks if there is storage space */
 #ifndef RT_FLASH_ENABLED
-#   define RT_FLASH_ENABLED (RB_FLASH_SPACE_AVAILABLE > RB_FLASH_SPACE_SMALL)
+#   define RT_FLASH_ENABLED (0U)
 #endif
 
 /** @brief Enable Ruuvi Flash interface. */
@@ -531,7 +531,7 @@
 #endif
 
 #ifndef APP_FW_NAME
-#   define APP_FW_NAME "Ruuvi FW"
+#   define APP_FW_NAME "Acceleration Broadcaster"
 #endif
 
 /** @brief Logs reserve lot of flash, enable only on debug builds */

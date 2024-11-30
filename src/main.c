@@ -21,6 +21,7 @@
 #include "run_integration_tests.h"
 #include "ruuvi_interface_log.h"
 #include "ruuvi_interface_power.h"
+#include "ruuvi_interface_rtc.h"
 #include "ruuvi_interface_scheduler.h"
 #include "ruuvi_interface_timer.h"
 #include "ruuvi_interface_watchdog.h"
@@ -119,6 +120,16 @@ int main (void)
         ri_yield();
         // Prevent loop being optimized away
         __asm__ ("");
+        // Daily reboot / power cycle to work around LIS2DH12 high-pass error
+        if(ri_rtc_millis() > (24U*60U*60U*1000U))
+        {
+            // Uninit does soft reset + powers off sensor power buses
+            app_sensor_uninit();
+            // Let sensors settle
+            ri_delay_ms(1000U);
+            // Reset program
+            ri_power_reset();
+        }
     } while (LOOP_FOREVER);
 
     // Intentionally non-reachable code unless unit testing.
